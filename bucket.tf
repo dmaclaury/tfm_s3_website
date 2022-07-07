@@ -14,7 +14,7 @@ resource "aws_s3_bucket" "website" {
 # Setting the Bucket ACL.
 resource "aws_s3_bucket_acl" "website" {
   bucket = aws_s3_bucket.website.id
-  acl    = "private"
+  acl    = "public-read"
 }
 
 # Blocking public access to the S3 bucket.
