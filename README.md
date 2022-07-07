@@ -1,4 +1,4 @@
-**S3 Website Website w/ Terraform**
+# S3 Website Website w/ Terraform
 
 This repo is a personal project for me to deploy a personal website to S3 using Terraform.
 
