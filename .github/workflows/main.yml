@@ -16,6 +16,7 @@ jobs:
     environment: staging
     env: 
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ENVIRONMENT: staging
 
     defaults:
       run:
@@ -44,7 +45,7 @@ jobs:
 
     # Select Terraform Workspace
     - name: Terraform Init
-      run: terraform workspace select ${{ environment }}
+      run: terraform workspace select ${{ env.environment }}
 
     # Checks that all Terraform configuration files adhere to a canonical format
     - name: Terraform Format
