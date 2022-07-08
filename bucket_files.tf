@@ -4,6 +4,8 @@ resource "aws_s3_object" "index" {
   key    = "index.html"
   source = "web/index.html"
   etag   = filemd5("web/index.html")
+
+  content_type = "text/html"
 }
 
 # Upload error.html to the bucket
@@ -12,4 +14,6 @@ resource "aws_s3_object" "error" {
   key    = "error.html"
   source = "web/error.html"
   etag   = filemd5("web/error.html")
+  
+  content_type = "text/html"
 }
