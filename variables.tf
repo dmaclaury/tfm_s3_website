@@ -1,6 +1,7 @@
 variable "environment" {
   type        = string
   description = "Deployment environment. i.e. Prod, Staging, Dev"
+  default     = "Staging"
 }
 
 variable "domain" {
