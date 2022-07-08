@@ -42,6 +42,10 @@ jobs:
     - name: Terraform Init
       run: terraform init
 
+    # Select Terraform Workspace
+    - name: Terraform Init
+      run: terraform workspace select ${{ environment }}
+
     # Checks that all Terraform configuration files adhere to a canonical format
     - name: Terraform Format
       run: terraform fmt -check
