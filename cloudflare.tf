@@ -4,7 +4,7 @@
 # Get the zone_id for our domain
 data "cloudflare_zones" "domain" {
   filter {
-    name = var.domain
+    name = var.tld
   }
 }
 
@@ -20,7 +20,7 @@ resource "cloudflare_record" "site_cname" {
 }
 
 # Create a www CNAME to the S3 website endpoint
-resource "cloudflare_record" "site_cname_www" {
+/*resource "cloudflare_record" "site_cname_www" {
   zone_id = data.cloudflare_zones.domain.zones[0].id
   name    = "www.${var.domain}"
   value   = aws_s3_bucket_website_configuration.website.website_endpoint
@@ -28,4 +28,4 @@ resource "cloudflare_record" "site_cname_www" {
 
   ttl     = 1
   proxied = true
-}
+}*/

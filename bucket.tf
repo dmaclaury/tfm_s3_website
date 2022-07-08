@@ -1,9 +1,6 @@
-# Random Pet Generator - used to ensure bucket name is globally unique.
-resource "random_pet" "suffix" {}
-
 # Creating the S3 bucket.
 resource "aws_s3_bucket" "website" {
-  bucket = "${var.domain}-${random_pet.suffix.id}"
+  bucket = var.domain
 
   tags = {
     Name        = "${var.domain}"
