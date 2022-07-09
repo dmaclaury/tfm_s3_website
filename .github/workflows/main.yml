@@ -65,10 +65,6 @@ jobs:
         commenter_type: init
         commenter_input: ${{ format('{0}{1}', steps.init.outputs.stdout, steps.init.outputs.stderr) }}
         commenter_exitcode: ${{ steps.init.outputs.exitcode }}
-
-    # Select Terraform Workspace
-    - name: Terraform Workspace Select
-      run: terraform workspace select ${{ env.ENVIRONMENT }}
     
     # Validate the terraform code
     - name: Terraform Validate
