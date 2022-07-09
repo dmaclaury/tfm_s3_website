@@ -71,8 +71,8 @@ jobs:
     
     # Validate the terraform code
     - name: Terraform Validate
-        id: validate
-        run: terraform validate
+      id: validate
+      run: terraform validate
     
     # Post PR comment with validate results.
     - name: Post Validate
