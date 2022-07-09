@@ -74,7 +74,7 @@ jobs:
         id: validate
         run: terraform validate
     
-    # Post PR comment with vlidate results.
+    # Post PR comment with validate results.
     - name: Post Validate
       if: always() && github.ref != 'refs/heads/master' && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
       uses: robburger/terraform-pr-commenter@v1
