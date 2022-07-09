@@ -4,6 +4,6 @@ resource "null_resource" "invalidate_cf_cache" {
     command = "aws cloudfront create-invalidation --distribution-id ${aws_cloudfront_distribution.s3_distribution.id} --paths '/*'"
   }
   depends_on = [
-    aws_s3_object.index.etag,
+    aws_s3_object.index,
   ]
 }
