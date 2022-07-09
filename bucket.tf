@@ -11,39 +11,35 @@ resource "aws_s3_bucket" "website" {
 # Setting the Bucket ACL.
 resource "aws_s3_bucket_acl" "website" {
   bucket = aws_s3_bucket.website.id
-  acl    = "public-read"
+  acl    = "private"
+}
+
+# Bucket Policy Document
+data "aws_iam_policy_document" "s3_bucket_policy" {
+  statement {
+    sid = "1"
+
+    actions = [
+      "s3:GetObject",
+    ]
+
+    resources = [
+      "arn:aws:s3:::${var.domain}/*",
+    ]
+
+    principals {
+      type = "AWS"
+
+      identifiers = [
+        aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn,
+      ]
+    }
+  }
 }
 
 # Bucket Policy
 resource "aws_s3_bucket_policy" "website" {
   bucket = aws_s3_bucket.website.id
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Sid       = "PublicReadGetObject"
-        Effect    = "Allow"
-        Principal = "*"
-        Action    = "s3:GetObject"
-        Resource = [
-          aws_s3_bucket.website.arn,
-          "${aws_s3_bucket.website.arn}/*",
-        ]
-      },
-    ]
-  })
-}
-
-# S3 bucket website settings.
-resource "aws_s3_bucket_website_configuration" "website" {
-  bucket = aws_s3_bucket.website.id
-
-  index_document {
-    suffix = "index.html"
-  }
-
-  error_document {
-    key = "error.html"
-  }
+  policy = data.aws_iam_policy_document.s3_bucket_policy.json
 }
