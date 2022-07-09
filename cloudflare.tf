@@ -13,7 +13,7 @@ resource "cloudflare_record" "site_cname" {
   type    = "CNAME"
 
   ttl     = 1
-  proxied = true
+  proxied = false
 }
 
 # Create a www CNAME to the S3 website endpoint
@@ -24,5 +24,23 @@ resource "cloudflare_record" "site_cname_www" {
   type    = "CNAME"
 
   ttl     = 1
-  proxied = true
+  proxied = false
+}
+
+# Create ACM DNS validation records
+resource "cloudflare_record" "acm_validation" {
+  zone_id = data.cloudflare_zones.domain.zones[0].id
+
+  for_each = { # Make sure we validate all the required entries from ACM
+    for vali in aws_acm_certificate.acm_cert.domain_validation_options : vali.domain_name => {
+      name  = vali.resource_record_name
+      value = vali.resource_record_value
+      type  = vali.resource_record_type
+    }
+  }
+
+  name  = each.value.name
+  value = each.value.value
+  type  = each.value.type
+
 }
