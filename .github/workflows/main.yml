@@ -102,7 +102,7 @@ jobs:
     #Sync Web Files to S3, on push to main
     - name: Sync Web Files to S3
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: aws s3 sync web/ s3://$(terraform output --raw s3_bucket_name) --delete
+      run: aws s3 sync web/ s3://$(terraform output --raw s3_bucket_name)
 
     # Invalidate CloudFront Cache, on push to main
     - name: Invalidate CloudFront Cache
