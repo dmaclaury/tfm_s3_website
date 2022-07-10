@@ -104,6 +104,7 @@ jobs:
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         export S3_BUCKET=$(terraform output --raw s3_bucket_name)
+        echo ${{ steps.plan.outputs.stdout }}
         aws s3 sync web/ s3://$S3_BUCKET
 
     # Invalidate CloudFront Cache, on push to main
