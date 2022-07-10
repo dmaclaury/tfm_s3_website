@@ -94,7 +94,17 @@ jobs:
         commenter_input: ${{ format('{0}{1}', steps.plan.outputs.stdout, steps.plan.outputs.stderr) }}
         commenter_exitcode: ${{ steps.plan.outputs.exitcode }}
 
-      # On push to "main", build or change infrastructure according to Terraform configuration files
+    # On push to "main", build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
+
+    #Sync Web Files to S3, on push to main
+    - name: Sync Web Files to S3
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: aws s3 sync web/ s3://$(terraform output --raw s3_bucket_name) --delete
+
+    # Invalidate CloudFront Cache, on push to main
+    - name: Invalidate CloudFront Cache
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: aws cloudfront create-invalidation --distribution-id $(terraform output --raw cloudfront_dist) --paths '/*'
