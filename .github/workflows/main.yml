@@ -99,17 +99,26 @@ jobs:
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
 
+    - name: Terraform Output Bucket name
+      id: output_bucket
+      run: terraform output --raw s3_bucket_name
+    
+    - name: Terraform Output CF distrubtion id
+      id: output_cf_dist
+      run: terraform output --raw cloudfront_dist
+
     # Sync Web Files to S3, on push to main
     - name: Sync Web Files to S3
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        export S3_BUCKET=$(terraform output --raw s3_bucket_name)
-        echo ${{ steps.plan.outputs.stdout }}
+        echo ${{ steps.output_bucket.outputs.stdout }}
+        export S3_BUCKET=${{ steps.output_bucket.outputs.stdout }}
         aws s3 sync web/ s3://$S3_BUCKET
 
     # Invalidate CloudFront Cache, on push to main
     - name: Invalidate CloudFront Cache
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        export CF_DIST=$(terraform output --raw cloudfront_dist)
+        echo ${{ steps.output_cf_dist.outputs.stdout }}
+        export CF_DIST=${{ steps.output_cf_dist.outputs.stdout }}
         aws cloudfront create-invalidation --distribution-id $CF_DIST --paths '/*'
