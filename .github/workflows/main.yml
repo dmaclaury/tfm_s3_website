@@ -99,10 +99,15 @@ jobs:
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: terraform apply -auto-approve -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
 
-    #Sync Web Files to S3, on push to main
+    # Export bucket name to env var
     - name: Sync Web Files to S3
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: aws s3 sync web/ s3://$(terraform output --raw s3_bucket_name)
+      run: export S3_BUCKET=$(terraform output --raw s3_bucket_name)
+
+    # Sync Web Files to S3, on push to main
+    - name: Sync Web Files to S3
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: aws s3 sync web/ s3://$S3_BUCKET
 
     # Invalidate CloudFront Cache, on push to main
     - name: Invalidate CloudFront Cache
