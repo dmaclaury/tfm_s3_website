@@ -7,3 +7,8 @@ output "s3_bucket_name" {
 output "cloudfront_domain_name" {
   value = aws_cloudfront_distribution.s3_distribution.domain_name
 }
+
+# Output cloudfront distribution 
+output "cloudfront_dist" {
+  value = aws_cloudfront_distribution.s3_distribution.id
+}
