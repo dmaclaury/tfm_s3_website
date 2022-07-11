@@ -1,4 +1,4 @@
-name: 'Terraform'
+name: 'Terraform - Staging'
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
   pull_request:
 
 jobs:
-  terraform:
-    name: 'Terraform'
+  staging:
+    name: 'Terraform - Staging'
     runs-on: ubuntu-latest
     environment: staging
     env: 
