@@ -1,0 +1,124 @@
+name: 'Terraform - PRODUCTION'
+
+on:
+  push:
+    branches:
+    - production
+  pull_request:
+    branches:
+    - production
+
+jobs:
+  staging:
+    name: 'Terraform - PRODUCTION'
+    runs-on: ubuntu-latest
+    environment: production
+    env: 
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ENVIRONMENT: production
+      TF_WORKSPACE: production
+      GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    # Checkout the repository to the GitHub Actions runner
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    # Configure AWS credentials
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-west-2
+
+    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+    
+    # Checks that all Terraform configuration files adhere to a canonical format
+    - name: Terraform Format
+      id: fmt
+      run: terraform fmt -check
+    
+    # Post PR comment with format results.
+    - name: Post Format
+      if: always() && github.ref != 'refs/heads/main' && (steps.fmt.outcome == 'success' || steps.fmt.outcome == 'failure')
+      uses: robburger/terraform-pr-commenter@v1
+      with:
+        commenter_type: fmt
+        commenter_input: ${{ format('{0}{1}', steps.fmt.outputs.stdout, steps.fmt.outputs.stderr) }}
+        commenter_exitcode: ${{ steps.fmt.outputs.exitcode }}
+
+    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
+    - name: Terraform Init
+      id: init
+      run: terraform init
+    
+    # Post PR comment with init results.
+    - name: Post Init
+      if: always() && github.ref != 'refs/heads/main' && (steps.init.outcome == 'success' || steps.init.outcome == 'failure')
+      uses: robburger/terraform-pr-commenter@v1
+      with:
+        commenter_type: init
+        commenter_input: ${{ format('{0}{1}', steps.init.outputs.stdout, steps.init.outputs.stderr) }}
+        commenter_exitcode: ${{ steps.init.outputs.exitcode }}
+    
+    # Validate the terraform code
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate
+    
+    # Post PR comment with validate results.
+    - name: Post Validate
+      if: always() && github.ref != 'refs/heads/main' && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+      uses: robburger/terraform-pr-commenter@v1
+      with:
+        commenter_type: validate
+        commenter_input: ${{ format('{0}{1}', steps.validate.outputs.stdout, steps.validate.outputs.stderr) }}
+        commenter_exitcode: ${{ steps.validate.outputs.exitcode }}
+    
+    # Generates an execution plan for Terraform
+    - name: Terraform Plan
+      id: plan
+      run: terraform plan -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
+    
+    # Post PR comment with plan results.
+    - name: Post Plan
+      if: always() && github.ref != 'refs/heads/main' && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
+      uses: robburger/terraform-pr-commenter@v1
+      with:
+        commenter_type: plan
+        commenter_input: ${{ format('{0}{1}', steps.plan.outputs.stdout, steps.plan.outputs.stderr) }}
+        commenter_exitcode: ${{ steps.plan.outputs.exitcode }}
+
+    # On push to "main", build or change infrastructure according to Terraform configuration files
+    - name: Terraform Apply
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: terraform apply -auto-approve -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
+
+    # Output bucket name for S3 sync to use
+    - name: Terraform Output Bucket name
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      id: output_bucket
+      run: terraform output --raw s3_bucket_name
+    
+    # Output CF_DIST_ID for CF invalidation step
+    - name: Terraform Output CF distrubtion id
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      id: output_cf_dist
+      run: terraform output --raw cloudfront_dist
+
+    # Sync Web Files to S3, on push to main
+    - name: Sync Web Files to S3
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: aws s3 sync web/ s3://${{ steps.output_bucket.outputs.stdout }}
+
+    # Invalidate CloudFront Cache, on push to main
+    - name: Invalidate CloudFront Cache
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: aws cloudfront create-invalidation --distribution-id ${{ steps.output_cf_dist.outputs.stdout }} --paths '/*'
