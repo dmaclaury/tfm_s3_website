@@ -1,22 +1,19 @@
-name: 'Terraform - Staging'
+name: 'Terraform - PRODUCTION - Deploy'
 
 on:
   push:
     branches:
-    - main
-  pull_request:
-    branches:
-    - main
+    - production
 
 jobs:
-  staging:
-    name: 'Terraform - Staging'
+  prod-deploy:
+    name: 'Terraform - PRODUCTION - Deploy'
     runs-on: ubuntu-latest
-    environment: staging
+    environment: production
     env: 
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      ENVIRONMENT: staging
-      TF_WORKSPACE: staging
+      ENVIRONMENT: production
+      TF_WORKSPACE: production
       GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
     defaults:
@@ -47,7 +44,7 @@ jobs:
     
     # Post PR comment with format results.
     - name: Post Format
-      if: always() && github.ref != 'refs/heads/main' && (steps.fmt.outcome == 'success' || steps.fmt.outcome == 'failure')
+      if: always() && github.ref != 'refs/heads/${{ env.ENVIRONMENT }}' && (steps.fmt.outcome == 'success' || steps.fmt.outcome == 'failure')
       uses: robburger/terraform-pr-commenter@v1
       with:
         commenter_type: fmt
@@ -61,7 +58,7 @@ jobs:
     
     # Post PR comment with init results.
     - name: Post Init
-      if: always() && github.ref != 'refs/heads/main' && (steps.init.outcome == 'success' || steps.init.outcome == 'failure')
+      if: always() && github.ref != 'refs/heads/${{ env.ENVIRONMENT }}' && (steps.init.outcome == 'success' || steps.init.outcome == 'failure')
       uses: robburger/terraform-pr-commenter@v1
       with:
         commenter_type: init
@@ -75,7 +72,7 @@ jobs:
     
     # Post PR comment with validate results.
     - name: Post Validate
-      if: always() && github.ref != 'refs/heads/main' && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
+      if: always() && github.ref != 'refs/heads/${{ env.ENVIRONMENT }}' && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
       uses: robburger/terraform-pr-commenter@v1
       with:
         commenter_type: validate
@@ -89,7 +86,7 @@ jobs:
     
     # Post PR comment with plan results.
     - name: Post Plan
-      if: always() && github.ref != 'refs/heads/main' && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
+      if: always() && github.ref != 'refs/heads/${{ env.ENVIRONMENT }}' && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
       uses: robburger/terraform-pr-commenter@v1
       with:
         commenter_type: plan
@@ -98,27 +95,27 @@ jobs:
 
     # On push to "main", build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
       run: terraform apply -auto-approve -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
 
     # Output bucket name for S3 sync to use
     - name: Terraform Output Bucket name
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
       id: output_bucket
       run: terraform output --raw s3_bucket_name
     
     # Output CF_DIST_ID for CF invalidation step
     - name: Terraform Output CF distrubtion id
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
       id: output_cf_dist
       run: terraform output --raw cloudfront_dist
 
     # Sync Web Files to S3, on push to main
     - name: Sync Web Files to S3
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
       run: aws s3 sync web/ s3://${{ steps.output_bucket.outputs.stdout }}
 
     # Invalidate CloudFront Cache, on push to main
     - name: Invalidate CloudFront Cache
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.ref == 'refs/heads/${{ env.ENVIRONMENT }}' && github.event_name == 'push'
       run: aws cloudfront create-invalidation --distribution-id ${{ steps.output_cf_dist.outputs.stdout }} --paths '/*'
