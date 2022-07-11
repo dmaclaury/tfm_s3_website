@@ -3,7 +3,6 @@ name: 'Terraform - PRODUCTION - Checks'
 on:
   push:
     branches:
-    - production
     - main
   pull_request:
     branches:
