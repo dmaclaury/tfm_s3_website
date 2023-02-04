@@ -5,6 +5,9 @@ on:
     branches:
     - production
 
+permissions:
+  pull-requests: write
+  
 jobs:
   prod-deploy:
     name: 'Terraform - PRODUCTION - Deploy'
@@ -27,7 +30,7 @@ jobs:
 
     # Configure AWS credentials
     - name: Configure AWS Credentials
-      uses: aws-actions/configure-aws-credentials@v1
+      uses: aws-actions/configure-aws-credentials@v1-node16
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -35,7 +38,7 @@ jobs:
 
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v1
+      uses: hashicorp/setup-terraform@v2
     
     # Checks that all Terraform configuration files adhere to a canonical format
     - name: Terraform Format
