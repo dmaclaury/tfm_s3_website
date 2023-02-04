@@ -5,6 +5,9 @@ on:
     branches:
     - production
 
+permissions:
+  pull-requests: write
+  
 jobs:
   prod-deploy:
     name: 'Terraform - PRODUCTION - Deploy'
