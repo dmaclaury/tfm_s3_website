@@ -9,6 +9,9 @@ on:
     - production
     - main
 
+permissions:
+  pull-requests: write
+  
 jobs:
   prod-checks:
     name: 'Terraform - PRODUCTION - Checks'
