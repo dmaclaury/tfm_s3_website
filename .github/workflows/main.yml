@@ -40,7 +40,8 @@ jobs:
         aws-region: us-west-2
     
     # Make sure node20 is ready - ref https://github.com/hashicorp/setup-terraform/issues/84
-    - uses: actions/setup-node@v4
+    - name: Setup Node20
+      uses: actions/setup-node@v4
       with:
         node-version: 20
 
