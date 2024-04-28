@@ -15,7 +15,7 @@ permissions:
 jobs:
   prod-checks:
     name: 'Terraform - PRODUCTION - Checks'
-    runs-on: ubuntu-latest
+    runs-on: arc-runner-set-tfm-s3-website
     env: 
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       ENVIRONMENT: production
@@ -38,6 +38,12 @@ jobs:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-west-2
+
+    # Make sure node20 is ready - ref https://github.com/hashicorp/setup-terraform/issues/84
+    - name: Setup Node20
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
 
     # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
     - name: Setup Terraform
