@@ -9,6 +9,7 @@ on:
     - main
 
 permissions:
+  contents: read
   pull-requests: write
   
 jobs:
@@ -31,7 +32,7 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
     
-    # AWS CLI is not installed by defualt on self-hosted runner image
+    # AWS CLI is not installed by default on self-hosted runner image
     - name: Install AWS CLI
       uses: unfor19/install-aws-cli-action@v1
       with:
@@ -45,95 +46,82 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: us-west-2
     
-    # Make sure node20 is ready - ref https://github.com/hashicorp/setup-terraform/issues/84
-    - name: Setup Node20
-      uses: actions/setup-node@v4
-      with:
-        node-version: 20
+    # # Make sure node20 is ready - ref https://github.com/hashicorp/setup-terraform/issues/84
+    # - name: Setup Node20
+    #   uses: actions/setup-node@v4
+    #   with:
+    #     node-version: 20
 
-    # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+    # # Install the latest version of Terraform CLI and configure the Terraform CLI configuration file with a Terraform Cloud user API token
+    # - name: Setup Terraform
+    #   uses: hashicorp/setup-terraform@v3
     
     # Checks that all Terraform configuration files adhere to a canonical format
-    - name: Terraform Format
-      id: fmt
-      run: terraform fmt -check
-    
-    # Post PR comment with format results.
-    - name: Post Format
-      if: always() && github.ref != 'refs/heads/main' && (steps.fmt.outcome == 'success' || steps.fmt.outcome == 'failure')
-      uses: robburger/terraform-pr-commenter@v1
+    - name: terraform fmt
+      uses: dflook/terraform-fmt-check@v2
+      id: fmt-check
       with:
-        commenter_type: fmt
-        commenter_input: ${{ format('{0}{1}', steps.fmt.outputs.stdout, steps.fmt.outputs.stderr) }}
-        commenter_exitcode: ${{ steps.fmt.outputs.exitcode }}
+        workspace: ${{ env.TF_WORKSPACE }}
+    
+    - name: Wrong formatting found
+      if: ${{ failure() && steps.fmt-check.outputs.failure-reason == 'check-failed' }}
+      run: echo "formatting check failed"
 
-    # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
-    - name: Terraform Init
-      id: init
-      run: terraform init
-    
-    # Post PR comment with init results.
-    - name: Post Init
-      if: always() && github.ref != 'refs/heads/main' && (steps.init.outcome == 'success' || steps.init.outcome == 'failure')
-      uses: robburger/terraform-pr-commenter@v1
-      with:
-        commenter_type: init
-        commenter_input: ${{ format('{0}{1}', steps.init.outputs.stdout, steps.init.outputs.stderr) }}
-        commenter_exitcode: ${{ steps.init.outputs.exitcode }}
-    
     # Validate the terraform code
-    - name: Terraform Validate
+    - name: terraform validate
+      uses: dflook/terraform-validate@v2
       id: validate
-      run: terraform validate
-    
-    # Post PR comment with validate results.
-    - name: Post Validate
-      if: always() && github.ref != 'refs/heads/main' && (steps.validate.outcome == 'success' || steps.validate.outcome == 'failure')
-      uses: robburger/terraform-pr-commenter@v1
       with:
-        commenter_type: validate
-        commenter_input: ${{ format('{0}{1}', steps.validate.outputs.stdout, steps.validate.outputs.stderr) }}
-        commenter_exitcode: ${{ steps.validate.outputs.exitcode }}
+        workspace: ${{ env.TF_WORKSPACE }}
+
+    - name: Validate failed
+      if: ${{ failure() && steps.validate.outputs.failure-reason == 'validate-failed' }}
+      run: echo "terraform validate failed"
     
     # Generates an execution plan for Terraform
-    - name: Terraform Plan
-      id: plan
-      run: terraform plan -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
-    
-    # Post PR comment with plan results.
-    - name: Post Plan
-      if: always() && github.ref != 'refs/heads/main' && (steps.plan.outcome == 'success' || steps.plan.outcome == 'failure')
-      uses: robburger/terraform-pr-commenter@v1
+    - name: terraform plan
+      uses: dflook/terraform-plan@v2
       with:
-        commenter_type: plan
-        commenter_input: ${{ format('{0}{1}', steps.plan.outputs.stdout, steps.plan.outputs.stderr) }}
-        commenter_exitcode: ${{ steps.plan.outputs.exitcode }}
+        label: ${{ env.ENVIRONMENT }}
+        workspace: ${{ env.TF_WORKSPACE }}
+        var_file: ${{ env.ENVIRONMENT }}.tfvars
 
     # On push to "main", build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: terraform apply -auto-approve -input=false -var-file ${{ env.ENVIRONMENT }}.tfvars
+      uses: dflook/terraform-apply@v2
+      with:
+        label: ${{ env.ENVIRONMENT }}
+        workspace: ${{ env.TF_WORKSPACE }}
+        var_file: ${{ env.ENVIRONMENT }}.tfvars
 
-    # Output bucket name for S3 sync to use
-    - name: Terraform Output Bucket name
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      id: output_bucket
-      run: terraform output --raw s3_bucket_name
+
+
+
+    - name: Get outputs
+      uses: dflook/terraform-output@v2
+      id: tf-outputs
+      with:
+        workspace: ${{ env.TF_WORKSPACE }}
     
-    # Output CF_DIST_ID for CF invalidation step
-    - name: Terraform Output CF distrubtion id
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      id: output_cf_dist
-      run: terraform output --raw cloudfront_dist
+    # # Output bucket name for S3 sync to use
+    # - name: Terraform Output Bucket name
+    #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #   id: output_bucket
+    #   run: terraform output --raw s3_bucket_name
+    
+    # # Output CF_DIST_ID for CF invalidation step
+    # - name: Terraform Output CF distrubtion id
+    #   if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    #   id: output_cf_dist
+    #   run: terraform output --raw cloudfront_dist
 
     # Sync Web Files to S3, on push to main
     - name: Sync Web Files to S3
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: aws s3 sync web/ s3://${{ steps.output_bucket.outputs.stdout }}
+      run: aws s3 sync web/ s3://${{ steps.tf-outputs.outputs.s3_bucket_name }}
 
     # Invalidate CloudFront Cache, on push to main
     - name: Invalidate CloudFront Cache
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: aws cloudfront create-invalidation --distribution-id ${{ steps.output_cf_dist.outputs.stdout }} --paths '/*'
+      run: aws cloudfront create-invalidation --distribution-id ${{ steps.tf-outputs.outputs.cloudfront_dist }} --paths '/*'
