@@ -69,7 +69,7 @@ jobs:
 
     # Validate the terraform code
     - name: terraform validate
-      uses: dflook/terraform-validate@v2
+      uses: dflook/terraform-validate@v3
       id: validate
       with:
         workspace: ${{ env.TF_WORKSPACE }}
