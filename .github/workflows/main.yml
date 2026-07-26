@@ -89,7 +89,7 @@ jobs:
     # On push to "main", build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      uses: dflook/terraform-apply@v2
+      uses: dflook/terraform-apply@v3
       with:
         label: ${{ env.ENVIRONMENT }}
         workspace: ${{ env.TF_WORKSPACE }}
