@@ -58,7 +58,7 @@ jobs:
     
     # Checks that all Terraform configuration files adhere to a canonical format
     - name: terraform fmt
-      uses: dflook/terraform-fmt-check@v2
+      uses: dflook/terraform-fmt-check@v3
       id: fmt-check
       with:
         workspace: ${{ env.TF_WORKSPACE }}
