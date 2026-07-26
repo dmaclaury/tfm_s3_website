@@ -80,7 +80,7 @@ jobs:
     
     # Generates an execution plan for Terraform
     - name: terraform plan
-      uses: dflook/terraform-plan@v2
+      uses: dflook/terraform-plan@v3
       with:
         label: ${{ env.ENVIRONMENT }}
         workspace: ${{ env.TF_WORKSPACE }}
