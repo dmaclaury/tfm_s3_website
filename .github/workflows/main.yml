@@ -96,7 +96,7 @@ jobs:
         var_file: ${{ env.ENVIRONMENT }}.tfvars
 
     - name: Get outputs
-      uses: dflook/terraform-output@v2
+      uses: dflook/terraform-output@v3
       id: tf-outputs
       with:
         workspace: ${{ env.TF_WORKSPACE }}
